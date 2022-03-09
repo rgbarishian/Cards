@@ -1,4 +1,6 @@
+from functools import reduce
 import math
+import operator
 
 import numpy as np
 
@@ -31,8 +33,6 @@ class War():
     def quick_play(self):
         Game = True
         while Game == True:
-            #find better way to write this
-            # needs to constant loop so subsequent wars can be run automatically
             #setup table where cards are being played
             self.table = {i.name:[] for i in self.players}
 
@@ -40,13 +40,20 @@ class War():
             for player in self.players:
                 self.table[player.name].append(player.play())
             winner_index = self._score_hand()
-            if len(winner_index)>1:
-                # Make sure everyone has at least 4 cards, if not adjust number of cards used in war
+
+            #If there is a tie, fall into a war loop
+            while len(winner_index) != 1:
+                # Make sure everyone has at least 4 cards
+                # if not add discard back to hand
+                # if still not adjust number of cards used in war
+                print('WAR')
                 number_down = 4
                 for index in winner_index:
                     player = self.players[index]
-                    if len(player.shand) < 4:
-                        number_down = len(player.shand)
+                    if len(player.hand) < 4:
+                        player.disc_to_hand(shuffle='Before')
+                        if len(player.hand) < 4:
+                            number_down = len(player.hand)
                 
                 for index in winner_index:
                     player = self.players[index]
@@ -54,16 +61,14 @@ class War():
                         self.table[player.name].append(player.play())
                 
                 winner_index = self._score_hand()
-                print('x')
 
-            else:
-                winner_name = list(self.table.keys())[winner_index[0]]
-                for player in self.players:
-                    if player.name == winner_name:
-                        #gather cards from table and put in players discard pile
-                        player.receive_discard(i[0] for i in self.table.values())
-                        break
-
+            #find winner of hand
+            winner = self.players[winner_index[0]]
+            #flattens list of values lists to single list
+            table_cards = reduce(operator.concat, self.table.values())
+            #give cards on table to winner
+            winner.receive_discard(table_cards)
+            
             #check if player is out of hand
             for player in self.players:
                 if not player.hand:
@@ -74,19 +79,11 @@ class War():
                             Game = False
                     else:
                         player.disc_to_hand()
-            # top_score = 
-            #if tied, call a war or if someone wins, 
 
     def _score_hand(self):
         scores = np.array([i[-1].score for i in self.table.values()])
         winner_index = np.where(scores==max(scores))[0]
         return winner_index
-
-    def _execute_war(self):
-        pass
-
-    def war(self):
-        pass
 
     def end_game(self):
         print(f'Game Ends\n{self.players[0].name} Wins!')
